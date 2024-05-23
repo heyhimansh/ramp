@@ -1,12 +1,12 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react"
+import { Employee } from "./utils/types"
 import { InputSelect } from "./components/InputSelect"
+import { TransactionPane } from "./components/TransactionPane"
 import { Instructions } from "./components/Instructions"
-import { Transactions } from "./components/Transactions"
 import { useEmployees } from "./hooks/useEmployees"
 import { usePaginatedTransactions } from "./hooks/usePaginatedTransactions"
 import { useTransactionsByEmployee } from "./hooks/useTransactionsByEmployee"
 import { EMPTY_EMPLOYEE } from "./utils/constants"
-import { Employee } from "./utils/types"
 
 export function App() {
   const { data: employees, ...employeeUtils } = useEmployees()
@@ -51,7 +51,7 @@ export function App() {
         <hr className="RampBreak--l" />
 
         <InputSelect<Employee>
-          isLoading={isLoading}
+          isLoading={employeeUtils.loading}
           defaultValue={EMPTY_EMPLOYEE}
           items={employees === null ? [] : [EMPTY_EMPLOYEE, ...employees]}
           label="Filter by employee"
@@ -64,26 +64,34 @@ export function App() {
             if (newValue === null) {
               return
             }
-
-            await loadTransactionsByEmployee(newValue.id)
+            newValue.id ? await loadTransactionsByEmployee(newValue.id) : await loadAllTransactions()
           }}
         />
 
         <div className="RampBreak--l" />
 
         <div className="RampGrid">
-          <Transactions transactions={transactions} />
-
-          {transactions !== null && (
-            <button
-              className="RampButton"
-              disabled={paginatedTransactionsUtils.loading}
-              onClick={async () => {
-                await loadAllTransactions()
-              }}
-            >
-              View More
-            </button>
+          {transactions === null ? (
+            <div className="RampLoading--container">Loading...</div>
+          ) : (
+            <Fragment>
+              <div data-testid="transaction-container">
+                {transactions.map((transaction) => (
+                  <TransactionPane key={transaction.id} transaction={transaction} />
+                ))}
+              </div>
+              {paginatedTransactions?.nextPage && (
+                <button
+                  className="RampButton"
+                  disabled={paginatedTransactionsUtils.loading}
+                  onClick={async () => {
+                    await loadAllTransactions()
+                  }}
+                >
+                  View More
+                </button>
+              )}
+            </Fragment>
           )}
         </div>
       </main>
